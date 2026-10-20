@@ -104,8 +104,25 @@ export const INITIAL_SETTINGS: StoreSettings = {
   enableStoreAndForward: true,
   mode: 'test',
   radarRiskLevel: 'normal',
-  radarBlockThreshold: 50
+  radarBlockThreshold: 50,
+  useMcpAgentForCards: true,
+  mcpModel: 'gemini-3.8-flash',
+  requireCvc: true,
+  requireZip: true,
+  maxManualPunchAmount: 1500,
+  supervisorPin: '8812',
+  requireSupervisorPinForForceSale: true,
+  captureMethod: 'automatic',
+  autoEmailReceipt: true,
+  defaultTipPercent: 15,
+  quickChargeAmounts: [5, 10, 20, 50, 100]
 };
+
+export const FREQUENT_CUSTOMERS = [
+  { id: 'cus_1', name: 'Sarah Jenkins', email: 'sarah.j@example.com', ordersCount: 14, favoriteItem: 'Vanilla Oat Milk Latte' },
+  { id: 'cus_2', name: 'Marcus Vance', email: 'mvance@startup.io', ordersCount: 8, favoriteItem: 'Avocado Sourdough Toast' },
+  { id: 'cus_3', name: 'Alex Rivera', email: 'alex@designer.co', ordersCount: 5, favoriteItem: 'Matcha Green Tea Latte' }
+];
 
 export const INITIAL_TRANSACTIONS: Transaction[] = [
   {

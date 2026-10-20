@@ -182,15 +182,34 @@ export const TransactionLedger: React.FC<TransactionLedgerProps> = ({
                       <div className="text-xs text-slate-500">{txn.customerEmail || 'No email'}</div>
                     </td>
                     <td className="py-4 px-6">
-                      <div className="flex items-center space-x-2">
-                        <span className="uppercase text-xs font-mono bg-slate-950 px-2 py-1 rounded border border-slate-800">
-                          {txn.paymentMethod.replace('_', ' ')}
-                        </span>
-                        {txn.cardLast4 && (
-                          <span className="text-xs text-slate-400">
-                            {txn.cardBrand} •••• {txn.cardLast4}
+                      <div className="flex flex-col space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="uppercase text-xs font-mono bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                            {txn.paymentMethod.replace('_', ' ')}
                           </span>
-                        )}
+                          {txn.cardLast4 && (
+                            <span className="text-xs text-slate-400">
+                              {txn.cardBrand} •••• {txn.cardLast4}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-1.5 text-[10px]">
+                          {txn.mcpOrchestrated && (
+                            <span className="bg-violet-500/10 text-violet-300 border border-violet-500/30 px-1.5 py-0.5 rounded font-mono">
+                              MCP Agent
+                            </span>
+                          )}
+                          {txn.isForceSale && (
+                            <span className="bg-amber-500/10 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded font-mono">
+                              Force Sale ({txn.authCode || 'Auth'})
+                            </span>
+                          )}
+                          {txn.radarRiskScore !== undefined && (
+                            <span className="text-slate-400 font-mono">
+                              Radar: {txn.radarRiskScore}/100
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="py-4 px-6 font-bold text-white">

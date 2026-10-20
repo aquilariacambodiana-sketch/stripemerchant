@@ -12,12 +12,13 @@ import {
   WifiOff, 
   RefreshCw,
   Store,
-  ShieldCheck
+  ShieldCheck,
+  Cpu
 } from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: 'pos' | 'ledger' | 'inventory' | 'analytics' | 'copilot' | 'settings';
-  setActiveTab: (tab: 'pos' | 'ledger' | 'inventory' | 'analytics' | 'copilot' | 'settings') => void;
+  activeTab: 'pos' | 'ledger' | 'inventory' | 'analytics' | 'mcp' | 'copilot' | 'settings';
+  setActiveTab: (tab: 'pos' | 'ledger' | 'inventory' | 'analytics' | 'mcp' | 'copilot' | 'settings') => void;
   settings: StoreSettings;
   isOnline: boolean;
   setIsOnline: (val: boolean) => void;
@@ -51,13 +52,13 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="font-bold text-lg bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
                   StripeFlow
                 </span>
-                <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full ml-2 border border-indigo-500/30">
+                <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full ml-2 border border-indigo-500/30 font-medium">
                   {settings.mode === 'test' ? 'Test Mode' : 'Live'}
                 </span>
               </div>
             </div>
 
-            <div className="hidden md:flex items-center space-x-2 text-xs text-slate-400 border-l border-slate-800 pl-4">
+            <div className="hidden lg:flex items-center space-x-2 text-xs text-slate-400 border-l border-slate-800 pl-4">
               <Store className="w-3.5 h-3.5 text-slate-500" />
               <span className="font-medium text-slate-300">{settings.storeName}</span>
             </div>
@@ -67,73 +68,88 @@ export const Header: React.FC<HeaderProps> = ({
           <nav className="hidden md:flex items-center space-x-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
             <button
               onClick={() => setActiveTab('pos')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 activeTab === 'pos'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
             >
-              <CreditCard className="w-4 h-4" />
+              <CreditCard className="w-3.5 h-3.5" />
               <span>POS</span>
             </button>
 
             <button
+              onClick={() => setActiveTab('mcp')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                activeTab === 'mcp'
+                  ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30'
+                  : 'text-violet-300 hover:text-white hover:bg-slate-900'
+              }`}
+            >
+              <Cpu className="w-3.5 h-3.5 text-violet-400" />
+              <span className="flex items-center">
+                Stripe MCP Agent
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 ml-1.5 animate-pulse" />
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('ledger')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 activeTab === 'ledger'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
             >
-              <Receipt className="w-4 h-4" />
+              <Receipt className="w-3.5 h-3.5" />
               <span>Ledger</span>
             </button>
 
             <button
               onClick={() => setActiveTab('inventory')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 activeTab === 'inventory'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
             >
-              <Package className="w-4 h-4" />
+              <Package className="w-3.5 h-3.5" />
               <span>Inventory</span>
             </button>
 
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 activeTab === 'analytics'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
             >
-              <BarChart3 className="w-4 h-4" />
+              <BarChart3 className="w-3.5 h-3.5" />
               <span>Analytics</span>
             </button>
 
             <button
               onClick={() => setActiveTab('copilot')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 activeTab === 'copilot'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
             >
-              <Bot className="w-4 h-4 text-violet-400" />
-              <span>Copilot</span>
+              <Bot className="w-3.5 h-3.5" />
+              <span>AI Copilot</span>
             </button>
 
             <button
               onClick={() => setActiveTab('settings')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 activeTab === 'settings'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="w-3.5 h-3.5" />
               <span>Settings</span>
             </button>
           </nav>
@@ -156,7 +172,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Online / Offline Simulator Toggle */}
             <button
               onClick={() => setIsOnline(!isOnline)}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
                 isOnline 
                   ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                   : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
@@ -176,7 +192,7 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
-            {/* Stripe Secure badge */}
+            {/* Stripe PCI Badge */}
             <div className="hidden lg:flex items-center space-x-1 text-slate-500 text-xs">
               <ShieldCheck className="w-4 h-4 text-indigo-400" />
               <span>PCI-DSS</span>
@@ -193,6 +209,13 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <CreditCard className="w-4 h-4 mb-1" />
             <span>POS</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('mcp')}
+            className={`flex flex-col items-center p-2 text-xs font-medium ${activeTab === 'mcp' ? 'text-violet-400' : 'text-slate-400'}`}
+          >
+            <Cpu className="w-4 h-4 mb-1" />
+            <span>MCP</span>
           </button>
           <button
             onClick={() => setActiveTab('ledger')}
@@ -214,13 +237,6 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <BarChart3 className="w-4 h-4 mb-1" />
             <span>Stats</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('copilot')}
-            className={`flex flex-col items-center p-2 text-xs font-medium ${activeTab === 'copilot' ? 'text-indigo-400' : 'text-slate-400'}`}
-          >
-            <Bot className="w-4 h-4 mb-1" />
-            <span>AI</span>
           </button>
           <button
             onClick={() => setActiveTab('settings')}

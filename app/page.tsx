@@ -4,12 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Product, StoreSettings, Transaction, CartItem } from '@/types/pos';
-import { INITIAL_SETTINGS } from '@/data/initial-data';
+import { INITIAL_PRODUCTS, INITIAL_SETTINGS, INITIAL_TRANSACTIONS } from '@/data/initial-data';
 import { Header } from '@/components/Header';
 import { POSTerminal } from '@/components/POSTerminal';
 import { TransactionLedger } from '@/components/TransactionLedger';
 import { InventoryCatalog } from '@/components/InventoryCatalog';
 import { AnalyticsDashboard } from '@/components/AnalyticsDashboard';
+import { StripeMcpConsole } from '@/components/StripeMcpConsole';
 import { AISalesCopilot } from '@/components/AISalesCopilot';
 import { SettingsView } from '@/components/SettingsView';
 import { ManualPunchModal } from '@/components/ManualPunchModal';
@@ -17,25 +18,12 @@ import { ReceiptModal } from '@/components/ReceiptModal';
 import confetti from 'canvas-confetti';
 
 export default function Page() {
-  const [activeTab, setActiveTab] = useState<'pos' | 'ledger' | 'inventory' | 'analytics' | 'copilot' | 'settings'>('pos');
+  const [activeTab, setActiveTab] = useState<'pos' | 'ledger' | 'inventory' | 'analytics' | 'mcp' | 'copilot' | 'settings'>('pos');
   
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [settings, setSettings] = useState<StoreSettings>(INITIAL_SETTINGS);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
   const [cart, setCart] = useState<CartItem[]>([]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      // Fetch Products
-      const productsSnapshot = await getDocs(query(collection(db, 'products')));
-      setProducts(productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
-      
-      // Fetch Transactions
-      const transactionsSnapshot = await getDocs(query(collection(db, 'transactions')));
-      setTransactions(transactionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction)));
-    };
-    fetchData();
-  }, []);
 
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -45,23 +33,47 @@ export default function Page() {
   const [showManualPunchModal, setShowManualPunchModal] = useState<boolean>(false);
   const [receiptModalTxn, setReceiptModalTxn] = useState<Transaction | null>(null);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        if (!db) return;
+        // Fetch Products
+        const productsSnapshot = await getDocs(query(collection(db, 'products')));
+        if (!productsSnapshot.empty) {
+          setProducts(productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+        }
+        
+        // Fetch Transactions
+        const transactionsSnapshot = await getDocs(query(collection(db, 'transactions')));
+        if (!transactionsSnapshot.empty) {
+          setTransactions(transactionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction)));
+        }
+      } catch (err) {
+        console.warn('Firestore initial fetch fallback to cache:', err);
+      }
+    };
+    fetchData();
+  }, []);
+
   const offlineCount = transactions.filter(t => !t.offlineSynced || t.status === 'pending_offline').length;
 
-  // Process transaction (either online via Stripe API or offline store-and-forward queue)
+  // Process transaction (either via Stripe MCP Agent, standard API, or offline store-and-forward queue)
   const handleCompleteTransaction = async (
     paymentMethod: 'stripe_card' | 'manual_punch' | 'cash' | 'gift_card',
     amount: number,
     tip: number,
     customerName?: string,
     customerEmail?: string,
-    cardDetails?: any
+    cardDetails?: any,
+    isForceSale?: boolean,
+    authCode?: string
   ) => {
     setIsProcessingPayment(true);
 
     try {
       if (!isOnline && settings.enableStoreAndForward) {
         // Store and forward offline mode
-        await new Promise(r => setTimeout(r, 600));
+        await new Promise(r => setTimeout(r, 500));
         const newTxn: Transaction = {
           id: `txn_offline_${Date.now()}`,
           receiptNumber: `REC-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -80,7 +92,9 @@ export default function Page() {
           cardBrand: 'visa',
           items: [...cart],
           timestamp: new Date().toISOString(),
-          offlineSynced: false
+          offlineSynced: false,
+          isForceSale: !!isForceSale,
+          authCode: authCode || undefined
         };
 
         setTransactions(prev => [newTxn, ...prev]);
@@ -91,24 +105,36 @@ export default function Page() {
         return;
       }
 
-      // Online processing via server API route
-      const res = await fetch('/api/stripe/charge', {
+      // Check whether to use Stripe MCP Agent for card/punch transactions
+      const useMcp = settings.useMcpAgentForCards && (paymentMethod === 'stripe_card' || paymentMethod === 'manual_punch' || isForceSale);
+      const endpoint = useMcp ? '/api/stripe/mcp-agent' : '/api/stripe/charge';
+
+      const payload = {
+        amount,
+        currency: settings.currency,
+        paymentMethod,
+        cardDetails: cardDetails || { number: '4242 4242 4242 4242', expMonth: '12', expYear: '28', cvc: '888', zip: '94107' },
+        customerName,
+        customerEmail,
+        isForceSale: !!isForceSale,
+        authCode,
+        secretKey: settings.stripeSecretKey,
+        items: [...cart],
+        subtotal: amount - (amount * (settings.taxRate / 100)) - tip,
+        tax: (amount * (settings.taxRate / 100)),
+        tip,
+        settings
+      };
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount,
-          currency: settings.currency,
-          paymentMethod,
-          cardDetails,
-          customerName,
-          customerEmail,
-          secretKey: settings.stripeSecretKey
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
       if (!data.success) {
-        throw new Error(data.error || 'Payment failed');
+        throw new Error(data.error || 'Payment processing failed');
       }
 
       const completedTxn: Transaction = {
@@ -119,14 +145,19 @@ export default function Page() {
         discount: 0,
         currency: settings.currency,
         items: [...cart],
-        offlineSynced: true
+        offlineSynced: true,
+        mcpOrchestrated: useMcp,
+        mcpTrace: data.mcpTrace || undefined,
+        radarRiskScore: data.radarEvaluation?.radarRiskScore,
+        radarOutcome: data.radarEvaluation?.outcome,
+        agentSummary: data.agentSummary || undefined
       };
 
       setTransactions(prev => [completedTxn, ...prev]);
       setCart([]);
       setShowManualPunchModal(false);
       setReceiptModalTxn(completedTxn);
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      confetti({ particleCount: 90, spread: 65, origin: { y: 0.6 } });
 
     } catch (err: any) {
       alert(err.message || 'Transaction processing error');
@@ -196,10 +227,17 @@ export default function Page() {
             cart={cart}
             setCart={setCart}
             onOpenManualPunch={() => setShowManualPunchModal(true)}
-            onCompleteTransaction={async (method, amt, tip, name, email) => {
-              await handleCompleteTransaction(method, amt, tip, name, email);
+            onCompleteTransaction={async (method, amt, tip, name, email, details, isForce, auth) => {
+              await handleCompleteTransaction(method, amt, tip, name, email, details, isForce, auth);
             }}
             isProcessing={isProcessingPayment}
+          />
+        )}
+
+        {activeTab === 'mcp' && (
+          <StripeMcpConsole
+            settings={settings}
+            onTransactionLogged={(txn) => setTransactions(prev => [txn, ...prev])}
           />
         )}
 
@@ -244,22 +282,32 @@ export default function Page() {
         )}
       </main>
 
-      {/* Manual Keyed Punch Modal */}
+      {/* Manual Keyed Punch Modal with Force Sale and Rule Checks */}
       <ManualPunchModal
         isOpen={showManualPunchModal}
         onClose={() => setShowManualPunchModal(false)}
         amount={cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0) * (1 + settings.taxRate / 100)}
         currency={settings.currency}
+        settings={settings}
         onProcessPayment={async (cardDetails, method) => {
           const subtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
           const tax = subtotal * (settings.taxRate / 100);
           const grandTotal = subtotal + tax;
-          await handleCompleteTransaction(method, grandTotal, 0, cardDetails.name, cardDetails.email, cardDetails);
+          await handleCompleteTransaction(
+            method,
+            grandTotal,
+            0,
+            cardDetails.name,
+            cardDetails.email,
+            cardDetails,
+            cardDetails.isForceSale,
+            cardDetails.authCode
+          );
         }}
         isProcessing={isProcessingPayment}
       />
 
-      {/* Receipt Modal */}
+      {/* Receipt Modal with MCP Trace & Radar score */}
       <ReceiptModal
         transaction={receiptModalTxn}
         settings={settings}

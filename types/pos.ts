@@ -20,6 +20,17 @@ export interface CartItem {
 export type PaymentMethod = 'stripe_card' | 'manual_punch' | 'cash' | 'gift_card';
 export type TransactionStatus = 'succeeded' | 'pending_offline' | 'failed' | 'refunded' | 'partially_refunded';
 
+export interface McpAgentTraceStep {
+  step: number;
+  toolName: string;
+  description: string;
+  status: 'pending' | 'running' | 'success' | 'warning' | 'failed';
+  input: Record<string, any>;
+  output: Record<string, any>;
+  timestamp: string;
+  latencyMs?: number;
+}
+
 export interface Transaction {
   id: string;
   receiptNumber: string;
@@ -41,6 +52,23 @@ export interface Transaction {
   offlineSynced: boolean;
   notes?: string;
   refundAmount?: number;
+  // Stripe MCP Agent fields
+  mcpOrchestrated?: boolean;
+  mcpTrace?: McpAgentTraceStep[];
+  radarRiskScore?: number;
+  radarOutcome?: 'allow' | 'manual_review' | 'block';
+  isForceSale?: boolean;
+  authCode?: string;
+  agentSummary?: string;
+}
+
+export interface CustomerProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  favoriteItem?: string;
+  ordersCount: number;
 }
 
 export interface StoreSettings {
@@ -54,6 +82,19 @@ export interface StoreSettings {
   enableStoreAndForward: boolean;
   mode: 'test' | 'live';
   stripeConnectAccountId?: string;
+  // Radar & Risk Rules
   radarRiskLevel: 'normal' | 'elevated' | 'strict';
   radarBlockThreshold: number;
+  useMcpAgentForCards: boolean;
+  mcpModel: string;
+  // Advanced Transaction & Security Rules
+  requireCvc: boolean;
+  requireZip: boolean;
+  maxManualPunchAmount: number;
+  supervisorPin: string;
+  requireSupervisorPinForForceSale: boolean;
+  captureMethod: 'automatic' | 'manual';
+  autoEmailReceipt: boolean;
+  defaultTipPercent: number;
+  quickChargeAmounts: number[];
 }
