@@ -1,0 +1,6 @@
+{
+  "name": "StripeFlow Merchant POS & Terminal",
+  "description": "Full-stack Stripe Merchant Point of Sale with manual punch card entry, store-and-forward offline queue, transaction ledger, and AI sales copilot.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
